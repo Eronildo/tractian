@@ -8,8 +8,8 @@
 See more at [Traction Challenges - Mobile README](https://github.com/tractian/challenges/blob/main/mobile/README.md)
 
 #### 🎥 Video on Youtube:
-https://youtu.be/jx_QxR1HrTk
-[![Video Record](https://img.youtube.com/vi/jx_QxR1HrTk/0.jpg)](https://www.youtube.com/watch?v=jx_QxR1HrTk)
+https://www.youtube.com/shorts/J0jKP7vSH6g
+[![Video Record](https://img.youtube.com/vi/J0jKP7vSH6g/0.jpg)](https://www.youtube.com/shorts/J0jKP7vSH6g)
 
 #### ⚙️ Improvements:
 

@@ -1,5 +1,7 @@
-import 'package:signals/signals.dart';
+import 'package:flutter/foundation.dart';
 import 'package:simple_ref/simple_ref.dart';
+import 'package:tractian/core/enums/status.dart';
+import 'package:tractian/interactor/models/company.dart';
 import 'package:tractian/repository/tractian_repository.dart';
 
 // Reference for the Selected Company
@@ -11,20 +13,31 @@ final refCompaniesController = Ref.autoDispose(
   ),
 );
 
-class CompaniesController with Disposable {
+class CompaniesController with Disposable, ChangeNotifier {
   CompaniesController({required TractianRepository repository})
-      : _repository = repository;
+      : _repository = repository {
+    _initialize();
+  }
 
   final TractianRepository _repository;
 
-  late final signalCompaniesAsync =
-      FutureSignal(() => _repository.fetchAllCompanies());
+  var _companies = <Company>[];
+  var _status = Status.loading;
+
+  Status get status => _status;
+  List<Company> get companies => _companies;
+
+  Future<void> _initialize() async {
+    try {
+      _companies = await _repository.fetchAllCompanies();
+      _status = Status.success;
+    } on Exception {
+      _status = Status.error;
+    } finally {
+      notifyListeners();
+    }
+  }
 
   void selectCompanyId(String companyId) =>
       refSelectedCompanyId.overrideWith(() => companyId);
-
-  @override
-  void dispose() {
-    signalCompaniesAsync.dispose();
-  }
 }

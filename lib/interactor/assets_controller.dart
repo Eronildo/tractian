@@ -1,13 +1,11 @@
-import 'dart:isolate';
-
 import 'package:flutter/widgets.dart';
-import 'package:signals/signals.dart';
 import 'package:simple_ref/simple_ref.dart';
 
 import 'package:tractian/core/debouncer/debouncer.dart';
 import 'package:tractian/core/enums/asset_filter.dart';
-import 'package:tractian/interactor/adapters/items_adapter.dart';
+import 'package:tractian/core/enums/status.dart';
 import 'package:tractian/interactor/companies_controller.dart';
+import 'package:tractian/interactor/extensions/item_list_extension.dart';
 import 'package:tractian/interactor/models/item.dart';
 import 'package:tractian/repository/tractian_repository.dart';
 
@@ -18,7 +16,7 @@ final refAssetsController = Ref.autoDispose(
   ),
 );
 
-class AssetsController with Disposable {
+class AssetsController with Disposable, ChangeNotifier {
   AssetsController({
     required String companyId,
     required TractianRepository repository,
@@ -26,65 +24,84 @@ class AssetsController with Disposable {
         _repository = repository {
     searchTextEditingController
         .addListener(_searchTextEditingControllerListener);
+    _initialize();
   }
 
   final String _companyId;
   final TractianRepository _repository;
 
   final _debouncer = Debouncer(milliseconds: 500);
-  final _searchQuery = ''.asSignal();
-  final _assetFilter = AssetFilter.none.asSignal();
+  var _status = Status.loading;
+
+  var _searchQuery = '';
+  var _items = <Item>[];
+  var _rawItems = <Item>[];
+  var _assetFilter = AssetFilter.none;
+
+  List<Item>? _filteredItems;
 
   final searchTextEditingController = TextEditingController();
 
-  ReadonlySignal<String> get searchQuery => _searchQuery;
-  ReadonlySignal<AssetFilter> get assetFilter => _assetFilter;
-
-  late final loadItems = FutureSignal(_getAllItems);
-  late final filteredItems = computed<List<Item>>(_getFilteredItems);
+  List<Item> get items => _items;
+  Status get status => _status;
+  String get searchQuery => _searchQuery;
+  AssetFilter get assetFilter => _assetFilter;
 
   void _searchTextEditingControllerListener() {
     _debouncer.run(
-      () => _searchQuery.value = searchTextEditingController.text,
+      () {
+        _searchQuery = searchTextEditingController.text;
+        _filterItems();
+      },
     );
   }
 
-  Future<List<Item>> _getAllItems() async {
-    final (locations, assets) = await (
-      _repository.fetchLocationsBy(companyId: _companyId),
-      _repository.fetchAssetsBy(companyId: _companyId),
-    ).wait;
+  Future<void> _initialize() async {
+    try {
+      final (locations, assets) = await (
+        _repository.fetchLocationsBy(companyId: _companyId),
+        _repository.fetchAssetsBy(companyId: _companyId),
+      ).wait;
 
-    final allItems = [...locations, ...assets];
-
-    return Isolate.run(() => mountOrganizedItems(allItems));
-  }
-
-  List<Item> _getFilteredItems() {
-    final asyncItems = loadItems.value;
-
-    if (asyncItems.value case final loadedItems?) {
-      final filter = _assetFilter.value;
-      final query = _searchQuery.value.trim();
-
-      return filterItems(
-        allItems: loadedItems,
-        filters: (filter, query),
-      );
+      _rawItems = [...locations, ...assets];
+      _items = _rawItems.toSortedItems();
+      _status = Status.success;
+    } on Exception {
+      _status = Status.error;
+    } finally {
+      notifyListeners();
     }
-
-    return [];
   }
 
-  void filterAssetsBy({required AssetFilter filter}) =>
-      _assetFilter.value = filter;
+  void _filterItems() {
+    final query = _searchQuery.trim();
+
+    final clearFilter = query.isEmpty && _assetFilter == AssetFilter.none;
+
+    _items = _rawItems.toSortedItems(
+      query: query,
+      filter: _assetFilter,
+    );
+
+    _filteredItems = clearFilter ? null : _items;
+
+    notifyListeners();
+  }
+
+  void reorderItems() {
+    _items = (_filteredItems ?? _rawItems).toSortedItems();
+    notifyListeners();
+  }
+
+  void filterAssetsBy({required AssetFilter filter}) {
+    _assetFilter = filter;
+    _filterItems();
+  }
 
   @override
   void dispose() {
-    _assetFilter.dispose();
-    _searchQuery.dispose();
+    super.dispose();
     _debouncer.dispose();
-    filteredItems.dispose();
     searchTextEditingController
         .removeListener(_searchTextEditingControllerListener);
     searchTextEditingController.dispose();
