@@ -10,7 +10,6 @@ dependencies:
   dio: ^5.7.0
   flutter:
     sdk: flutter
-  signals: ^5.5.0
   simple_ref: ^1.0.0
 
 dev_dependencies:

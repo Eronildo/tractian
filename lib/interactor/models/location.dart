@@ -5,9 +5,7 @@ class Location extends Item {
     required super.id,
     required super.name,
     required super.parentId,
-    required super.parent,
     required super.depth,
-    required super.children,
   });
 
   factory Location.fromMap(Map<String, dynamic> map) {
@@ -15,9 +13,7 @@ class Location extends Item {
       id: map['id'] as String,
       name: map['name'] as String,
       parentId: map['parentId'] != null ? map['parentId'] as String : null,
-      parent: null,
       depth: 0,
-      children: [],
     );
   }
 }

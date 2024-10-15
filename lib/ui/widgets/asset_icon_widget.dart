@@ -11,16 +11,19 @@ class AssetIconWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(
-      size: 22,
-      color: const Color(0xff2188ff),
-      item is Location
-          ? Icons.location_on_outlined
-          : item is Asset
-              ? (item as Asset).isComponent
-                  ? Tractian.component
-                  : Tractian.asset
-              : Icons.square_outlined,
+    return Padding(
+      padding: const EdgeInsets.only(right: 5),
+      child: Icon(
+        size: 20,
+        color: const Color(0xff2188ff),
+        item is Location
+            ? Icons.location_on_outlined
+            : item is Asset
+                ? (item as Asset).isComponent
+                    ? Tractian.component
+                    : Tractian.asset
+                : Icons.square_outlined,
+      ),
     );
   }
 }
